@@ -121,7 +121,7 @@ export default function LexIA() {
     const escInfo = ESCRITORIOS[escritorio];
 
     // ── System prompt com regras rígidas sobre jurisprudência ─────────────────
-    const system = \`Você é um assistente jurídico especializado do escritório \${escInfo.nome}, atuante em \${materia}.
+    const system = `Você é um assistente jurídico especializado do escritório \${escInfo.nome}, atuante em \${materia}.
 
 REGRAS ABSOLUTAS — NUNCA VIOLE:
 1. JAMAIS invente, fabrique ou complete números de processos, acórdãos, súmulas ou referências jurisprudenciais. Isso configura fraude processual com risco de multa e responsabilidade disciplinar ao advogado.
@@ -131,9 +131,9 @@ REGRAS ABSOLUTAS — NUNCA VIOLE:
    c) Indique ao advogado que deve pesquisar: "[INSERIR JURISPRUDÊNCIA APÓS PESQUISA NO PORTAL DO STJ/STF]"
 3. Jurisprudência NÃO é obrigatória em toda peça. Omita quando não houver certeza ou quando a lei e os fatos já sustentarem o pedido.
 4. Fonte padrão: Cambria 12pt. Recuo esquerdo 3cm, recuo direito 2cm, espaçamento simples, alinhamento justificado.
-5. Nunca invente fatos além do que foi informado.\`;
+5. Nunca invente fatos além do que foi informado.`;
 
-    const user = \`Processo nº \${numProcesso || "não informado"}
+    const user = `Processo nº \${numProcesso || "não informado"}
 Parte autora: \${parteAutora}
 Parte ré: \${parteRe}
 Tipo de peça: \${tipoPeca}
@@ -148,7 +148,7 @@ PARTE 1 — PARECER JURÍDICO (3 a 5 parágrafos):
 Analise a situação processual. Indique pontos fortes e fracos da tese. Se houver jurisprudência relevante com a qual você tenha CERTEZA ABSOLUTA (súmula numerada e enunciado exato), mencione. Caso contrário, APENAS sugira ao advogado que pesquise no portal do tribunal competente — nunca invente referências.
 
 PARTE 2 — PEÇA PROCESSUAL COMPLETA:
-Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito (citando artigos de lei aplicáveis), dos pedidos e fechamento com local, data e espaço para assinatura.\`;
+Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito (citando artigos de lei aplicáveis), dos pedidos e fechamento com local, data e espaço para assinatura.`;
 
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -203,7 +203,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
   if (tela === "login") return (
     <div style={{
       minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
-      backgroundImage:\`url(\${BG_OFFICE})\`, backgroundSize:"cover", backgroundPosition:"center",
+      backgroundImage:`url(\${BG_OFFICE})`, backgroundSize:"cover", backgroundPosition:"center",
       fontFamily:FONT_UI, position:"relative"
     }}>
       {/* overlay escuro sobre a foto */}
@@ -332,7 +332,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
                   <div style={{ display:"flex", gap:10, marginBottom:20 }}>
                     {Object.entries(ESCRITORIOS).map(([k,info]) => (
                       <button key={k} onClick={() => setEscritorio(k)} style={{
-                        flex:1, padding:"10px 16px", border: escritorio===k ? \`2px solid \${info.cor}\`:"1.5px solid #ddd",
+                        flex:1, padding:"10px 16px", border: escritorio===k ? `2px solid \${info.cor}`:"1.5px solid #ddd",
                         borderRadius:8, background: escritorio===k ? info.cor:"#fafafa",
                         color: escritorio===k ? "#fff":"#444", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:FONT_UI
                       }}>{info.nome}</button>
@@ -378,7 +378,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
                     border:"2px dashed #ccc", borderRadius:8, padding:14, textAlign:"center",
                     cursor:"pointer", background:"#fafafa", fontSize:13, color:"#888", marginBottom:16
                   }}>
-                    {arquivos.length > 0 ? \`\${arquivos.length} arquivo(s) selecionado(s)\` : "Clique para anexar decisões, despachos, certidões, petições da parte contrária..."}
+                    {arquivos.length > 0 ? `\${arquivos.length} arquivo(s) selecionado(s)` : "Clique para anexar decisões, despachos, certidões, petições da parte contrária..."}
                   </div>
                   <input ref={fileRef} type="file" multiple accept=".pdf,.docx" style={{display:"none"}}
                     onChange={e=>setArquivos(Array.from(e.target.files))}/>
@@ -499,7 +499,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
                     {[
                       { label:"Fundamentação legal",      status:"forte",  desc:"CDC e legislação aplicável verificados" },
                       { label:"Jurisprudência sugerida",  status:"atenção",desc:"Verifique no portal do tribunal antes de inserir" },
-                      { label:"Provas documentais",       status: arquivos.length>0?"forte":"atenção", desc: arquivos.length>0?\`\${arquivos.length} doc(s) anexado(s)\`:"Nenhum documento anexado" },
+                      { label:"Provas documentais",       status: arquivos.length>0?"forte":"atenção", desc: arquivos.length>0?`\${arquivos.length} doc(s) anexado(s)`:"Nenhum documento anexado" },
                       { label:"Nexo causal",              status:"médio",  desc:"Depende dos fatos narrados" },
                     ].map(item => {
                       const c = {forte:"#1a6e32",médio:"#8a5e00",atenção:"#8a1a1a"};
