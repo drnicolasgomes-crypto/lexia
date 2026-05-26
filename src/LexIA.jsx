@@ -19,7 +19,7 @@ const TIPOS_PECA = [
 
 const MATERIAS = [
   "Direito do Consumidor","Direito Médico e da Saúde","Direito Previdenciário",
-  "Direito Administrativo","Direito Empresarial","Planos de Saúde","Energia Elétrica","Outro"
+  "Direito Administrativo","Direito Empresarial","Planos de Saúde","Energia Elétrica","Direito Bancário","Outro"
 ];
 
 const BANCO_PROMPTS = [
@@ -108,21 +108,29 @@ export default function LexIA() {
 
   // ── Geração da peça via API ──────────────────────────────────────────────────
   async function lerArquivos(files) {
+    const toBase64 = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = reader.result.split(",")[1];
+        resolve(b64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
     const docs = [];
     for (const file of files) {
       try {
-        const arrayBuf = await file.arrayBuffer();
-        const b64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+        const b64 = await toBase64(file);
         const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const isDOCX = file.name.toLowerCase().endsWith(".docx");
         if (isPDF) {
           docs.push({
             type: "document",
             source: { type: "base64", media_type: "application/pdf", data: b64 },
             title: file.name
           });
-        }
-        // DOCX: send as base64 document too
-        else if (file.name.toLowerCase().endsWith(".docx")) {
+        } else if (isDOCX) {
           docs.push({
             type: "document",
             source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: b64 },
