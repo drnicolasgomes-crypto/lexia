@@ -119,8 +119,11 @@ export default function LexIA() {
   async function gerarPeca() {
     const av = avaliarPrompt(descricao);
     setQualidade(av);
-    if (av.escalate)     { setAlertaLider(true); return; }
-    if (av.score === "incompleto") return;
+    if (av.escalate) { setAlertaLider(true); return; }
+    if (av.score === "incompleto") {
+      // Show the message but allow proceeding anyway
+      // Don't block — just highlight what's missing
+    }
 
     setEtapa("gerando");
     setGerandoPeca(true);
@@ -163,37 +166,58 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
     try { textoArquivos = arquivos.length > 0 ? await lerArquivos(arquivos) : ""; }
     catch(e) { console.error("lerArquivos error:", e); textoArquivos = ""; }
 
+    let pecaFinal = "";
+    let parecerFinal = "";
+
     try {
       const res = await fetch("/api/claude", {
-        method:"POST",
-        headers:{ "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:4000,
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 4000,
           system,
-          messages:[{ role:"user", content: textoArquivos
-            ? user + "\n\nDOCUMENTOS ANEXADOS PARA ANÁLISE:\n" + textoArquivos
+          messages: [{ role: "user", content: textoArquivos
+            ? user + "\n\nDOCUMENTOS ANEXADOS:\n" + textoArquivos
             : user
           }]
         })
       });
-      const data = await res.json();
-      const texto = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("\n") || "Erro ao gerar peça.";
 
-      // Separar PARTE 1 e PARTE 2
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error("API retornou " + res.status + ": " + (errData.error?.message || errData.error || res.statusText));
+      }
+
+      const data = await res.json();
+
+      if (data.error) {
+        throw new Error(data.error.message || JSON.stringify(data.error));
+      }
+
+      const texto = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+
+      if (!texto) {
+        throw new Error("A IA retornou resposta vazia. Tente novamente.");
+      }
+
       const splitMatch = texto.match(/PARTE\s*2[^\n]*\n/i);
       if (splitMatch) {
-        const idx = texto.indexOf(splitMatch[0]);
-        setParecerIA(texto.slice(0, idx).replace(/PARTE\s*1[^\n]*\n/i,"").trim());
-        setPecaGerada(texto.slice(idx + splitMatch[0].length).trim());
+        const splitIdx = texto.indexOf(splitMatch[0]);
+        parecerFinal = texto.slice(0, splitIdx).replace(/PARTE\s*1[^\n]*\n/i, "").trim();
+        pecaFinal = texto.slice(splitIdx + splitMatch[0].length).trim();
       } else {
-        setParecerIA("Análise integrada na peça abaixo.");
-        setPecaGerada(texto);
+        parecerFinal = "Análise integrada na peça abaixo.";
+        pecaFinal = texto;
       }
     } catch(e) {
       console.error("gerarPeca error:", e);
-      setPecaGerada("Erro ao gerar peça: " + (e.message || String(e)));
+      pecaFinal = "⚠ Erro: " + (e.message || String(e));
+      parecerFinal = "";
     }
+
+    setParecerIA(parecerFinal);
+    setPecaGerada(pecaFinal);
     setGerandoPeca(false);
     setEtapa("resultado");
   }
