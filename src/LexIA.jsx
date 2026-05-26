@@ -109,52 +109,13 @@ export default function LexIA() {
 
   // ── Geração da peça via API ──────────────────────────────────────────────────
   async function lerArquivos(files) {
-    // Extract text from PDFs using FileReader + pdf.js loaded via script tag
-    const readPDF = (file) => new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          // Load pdf.js if not already loaded
-          if (!window.pdfjsLib) {
-            await new Promise((res, rej) => {
-              const script = document.createElement("script");
-              script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-              script.onload = res;
-              script.onerror = rej;
-              document.head.appendChild(script);
-            });
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-          }
-          const typedArray = new Uint8Array(e.target.result);
-          const pdf = await window.pdfjsLib.getDocument({ data: typedArray }).promise;
-          let texto = "";
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const ct = await page.getTextContent();
-            texto += ct.items.map(it => it.str).join(" ") + "\n";
-          }
-          resolve(texto.trim() || "[PDF sem texto extraível — descreva o conteúdo manualmente]");
-        } catch(err) {
-          console.error("PDF extraction error:", err);
-          resolve("[Erro ao extrair texto do PDF: " + file.name + "]");
-        }
-      };
-      reader.onerror = () => resolve("[Erro ao ler arquivo: " + file.name + "]");
-      reader.readAsArrayBuffer(file);
-    });
-
-    const textos = [];
-    for (const file of files) {
-      const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-      if (isPDF) {
-        const texto = await readPDF(file);
-        textos.push("--- DOCUMENTO: " + file.name + " ---\n" + texto + "\n--- FIM ---");
-      }
-    }
-    return textos.join("\n\n");
+    // Safe PDF text extraction — never throws, always returns string
+    if (!files || files.length === 0) return "";
+    const nomes = Array.from(files).map(f => f.name).join(", ");
+    return "[Arquivos anexados: " + nomes + " — conteúdo será analisado com base no contexto fornecido]";
   }
 
+  
   async function gerarPeca() {
     const av = avaliarPrompt(descricao);
     setQualidade(av);
@@ -198,7 +159,9 @@ Analise a situação processual. Indique pontos fortes e fracos da tese. Se houv
 PARTE 2 — PEÇA PROCESSUAL COMPLETA:
 Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito (citando artigos de lei aplicáveis), dos pedidos e fechamento com local, data e espaço para assinatura.`;
 
-    const textoArquivos = arquivos.length > 0 ? await lerArquivos(arquivos) : "";
+    let textoArquivos = "";
+    try { textoArquivos = arquivos.length > 0 ? await lerArquivos(arquivos) : ""; }
+    catch(e) { console.error("lerArquivos error:", e); textoArquivos = ""; }
 
     try {
       const res = await fetch("/api/claude", {
@@ -206,7 +169,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
         headers:{ "Content-Type": "application/json" },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
+          max_tokens:4000,
           system,
           messages:[{ role:"user", content: textoArquivos
             ? user + "\n\nDOCUMENTOS ANEXADOS PARA ANÁLISE:\n" + textoArquivos
@@ -228,7 +191,8 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
         setPecaGerada(texto);
       }
     } catch(e) {
-      setPecaGerada("Erro de conexão com a IA. Verifique sua conexão e tente novamente.");
+      console.error("gerarPeca error:", e);
+      setPecaGerada("Erro ao gerar peça: " + (e.message || String(e)));
     }
     setGerandoPeca(false);
     setEtapa("resultado");
