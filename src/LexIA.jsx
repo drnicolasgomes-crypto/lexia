@@ -197,14 +197,9 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
     const textoArquivos = arquivos.length > 0 ? await lerArquivos(arquivos) : "";
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/claude", {
         method:"POST",
-        headers:{
-            "Content-Type": "application/json",
-            "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY || "",
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-request-proxy": "true"
-          },
+        headers:{ "Content-Type": "application/json" },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
