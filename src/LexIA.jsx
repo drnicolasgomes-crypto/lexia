@@ -422,14 +422,23 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
 
                   {/* Upload */}
                   <label style={{ fontSize:11, color:"#666", letterSpacing:1, textTransform:"uppercase", display:"block", marginBottom:6 }}>Documentos do Processo (PDF/DOCX)</label>
-                  <div onClick={()=>fileRef.current?.click()} style={{
-                    border:"2px dashed #ccc", borderRadius:8, padding:14, textAlign:"center",
-                    cursor:"pointer", background:"#fafafa", fontSize:13, color:"#888", marginBottom:16
+                  <label htmlFor="lexia-file-input" style={{
+                    display:"block", border:"2px dashed #ccc", borderRadius:8, padding:14,
+                    textAlign:"center", cursor:"pointer", background:"#fafafa",
+                    fontSize:13, color:"#888", marginBottom:16
                   }}>
-                    {arquivos.length > 0 ? `\${arquivos.length} arquivo(s) selecionado(s)` : "Clique para anexar decisões, despachos, certidões, petições da parte contrária..."}
-                  </div>
-                  <input ref={fileRef} type="file" multiple accept=".pdf,.docx" style={{display:"none"}}
-                    onChange={e=>setArquivos(Array.from(e.target.files))}/>
+                    {arquivos.length > 0
+                      ? <span style={{color:"#1a6e32", fontWeight:600}}>✓ {arquivos.length} arquivo(s) selecionado(s) — clique para alterar</span>
+                      : "📎 Clique aqui para anexar PDF de decisões, despachos, certidões ou petições"}
+                  </label>
+                  <input
+                    id="lexia-file-input"
+                    type="file"
+                    multiple
+                    accept=".pdf,.docx,application/pdf"
+                    style={{display:"none"}}
+                    onChange={e => { if(e.target.files.length > 0) setArquivos(Array.from(e.target.files)); }}
+                  />
 
                   {/* Prompt */}
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
