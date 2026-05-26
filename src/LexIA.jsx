@@ -107,41 +107,47 @@ export default function LexIA() {
   }
 
   // ── Geração da peça via API ──────────────────────────────────────────────────
-  async function lerArquivos(files) {
-    const toBase64 = (file) => new Promise((resolve, reject) => {
+  async function extrairTextoPDF(file) {
+    return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const b64 = reader.result.split(",")[1];
-        resolve(b64);
+      reader.onload = async (e) => {
+        try {
+          const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          const typedArray = new Uint8Array(e.target.result);
+          const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+          let texto = "";
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            texto += content.items.map(item => item.str).join(" ") + "\n";
+          }
+          resolve(texto.trim());
+        } catch(err) {
+          console.error("Erro ao extrair PDF:", err);
+          resolve("");
+        }
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsArrayBuffer(file);
     });
+  }
 
-    const docs = [];
+  async function lerArquivos(files) {
+    const textos = [];
     for (const file of files) {
       try {
-        const b64 = await toBase64(file);
         const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-        const isDOCX = file.name.toLowerCase().endsWith(".docx");
         if (isPDF) {
-          docs.push({
-            type: "document",
-            source: { type: "base64", media_type: "application/pdf", data: b64 },
-            title: file.name
-          });
-        } else if (isDOCX) {
-          docs.push({
-            type: "document",
-            source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: b64 },
-            title: file.name
-          });
+          const texto = await extrairTextoPDF(file);
+          if (texto) {
+            textos.push(`--- DOCUMENTO: ${file.name} ---\n${texto}\n--- FIM DO DOCUMENTO ---`);
+          }
         }
       } catch(e) {
         console.error("Erro ao ler arquivo:", file.name, e);
       }
     }
-    return docs;
+    return textos.join("\n\n");
   }
 
   async function gerarPeca() {
@@ -187,6 +193,8 @@ Analise a situação processual. Indique pontos fortes e fracos da tese. Se houv
 PARTE 2 — PEÇA PROCESSUAL COMPLETA:
 Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito (citando artigos de lei aplicáveis), dos pedidos e fechamento com local, data e espaço para assinatura.`;
 
+    const textoArquivos = arquivos.length > 0 ? await lerArquivos(arquivos) : "";
+
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST",
@@ -195,8 +203,8 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           system,
-          messages:[{ role:"user", content: arquivos.length > 0
-            ? [...(await lerArquivos(arquivos)), { type:"text", text: user }]
+          messages:[{ role:"user", content: textoArquivos
+            ? user + "\n\nDOCUMENTOS ANEXADOS PARA ANÁLISE:\n" + textoArquivos
             : user
           }]
         })
