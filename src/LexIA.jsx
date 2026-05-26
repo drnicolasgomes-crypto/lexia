@@ -107,6 +107,35 @@ export default function LexIA() {
   }
 
   // ── Geração da peça via API ──────────────────────────────────────────────────
+  async function lerArquivos(files) {
+    const docs = [];
+    for (const file of files) {
+      try {
+        const arrayBuf = await file.arrayBuffer();
+        const b64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+        const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPDF) {
+          docs.push({
+            type: "document",
+            source: { type: "base64", media_type: "application/pdf", data: b64 },
+            title: file.name
+          });
+        }
+        // DOCX: send as base64 document too
+        else if (file.name.toLowerCase().endsWith(".docx")) {
+          docs.push({
+            type: "document",
+            source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: b64 },
+            title: file.name
+          });
+        }
+      } catch(e) {
+        console.error("Erro ao ler arquivo:", file.name, e);
+      }
+    }
+    return docs;
+  }
+
   async function gerarPeca() {
     const av = avaliarPrompt(descricao);
     setQualidade(av);
@@ -158,7 +187,10 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           system,
-          messages:[{ role:"user", content:user }]
+          messages:[{ role:"user", content: arquivos.length > 0
+            ? [...(await lerArquivos(arquivos)), { type:"text", text: user }]
+            : user
+          }]
         })
       });
       const data = await res.json();
