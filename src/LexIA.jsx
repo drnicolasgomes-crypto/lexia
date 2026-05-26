@@ -108,44 +108,48 @@ export default function LexIA() {
   }
 
   // ── Geração da peça via API ──────────────────────────────────────────────────
-  async function extrairTextoPDF(file) {
-    return new Promise((resolve) => {
+  async function lerArquivos(files) {
+    // Extract text from PDFs using FileReader + pdf.js loaded via script tag
+    const readPDF = (file) => new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
-          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          // Load pdf.js if not already loaded
+          if (!window.pdfjsLib) {
+            await new Promise((res, rej) => {
+              const script = document.createElement("script");
+              script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+              script.onload = res;
+              script.onerror = rej;
+              document.head.appendChild(script);
+            });
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          }
           const typedArray = new Uint8Array(e.target.result);
-          const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+          const pdf = await window.pdfjsLib.getDocument({ data: typedArray }).promise;
           let texto = "";
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            texto += content.items.map(item => item.str).join(" ") + "\n";
+            const ct = await page.getTextContent();
+            texto += ct.items.map(it => it.str).join(" ") + "\n";
           }
-          resolve(texto.trim());
+          resolve(texto.trim() || "[PDF sem texto extraível — descreva o conteúdo manualmente]");
         } catch(err) {
-          console.error("Erro ao extrair PDF:", err);
-          resolve("");
+          console.error("PDF extraction error:", err);
+          resolve("[Erro ao extrair texto do PDF: " + file.name + "]");
         }
       };
+      reader.onerror = () => resolve("[Erro ao ler arquivo: " + file.name + "]");
       reader.readAsArrayBuffer(file);
     });
-  }
 
-  async function lerArquivos(files) {
     const textos = [];
     for (const file of files) {
-      try {
-        const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-        if (isPDF) {
-          const texto = await extrairTextoPDF(file);
-          if (texto) {
-            textos.push(`--- DOCUMENTO: ${file.name} ---\n${texto}\n--- FIM DO DOCUMENTO ---`);
-          }
-        }
-      } catch(e) {
-        console.error("Erro ao ler arquivo:", file.name, e);
+      const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (isPDF) {
+        const texto = await readPDF(file);
+        textos.push("--- DOCUMENTO: " + file.name + " ---\n" + texto + "\n--- FIM ---");
       }
     }
     return textos.join("\n\n");
