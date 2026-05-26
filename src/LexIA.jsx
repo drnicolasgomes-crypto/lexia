@@ -562,7 +562,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
                     {[
                       { label:"Fundamentação legal",      status:"forte",  desc:"CDC e legislação aplicável verificados" },
                       { label:"Jurisprudência sugerida",  status:"atenção",desc:"Verifique no portal do tribunal antes de inserir" },
-                      { label:"Provas documentais",       status: arquivos.length>0?"forte":"atenção", desc: arquivos.length>0?`\${arquivos.length} doc(s) anexado(s)`:"Nenhum documento anexado" },
+                      { label:"Provas documentais",       status: arquivos.length>0?"forte":"atenção", desc: arquivos.length>0?(arquivos.length + " doc(s) anexado(s)"):"Nenhum documento anexado" },
                       { label:"Nexo causal",              status:"médio",  desc:"Depende dos fatos narrados" },
                     ].map(item => {
                       const c = {forte:"#1a6e32",médio:"#8a5e00",atenção:"#8a1a1a"};
