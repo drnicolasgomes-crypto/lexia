@@ -79,6 +79,7 @@ export default function LexIA() {
   const [tipoPeca,      setTipoPeca]      = useState("");
   const [materia,       setMateria]       = useState("");
   const [numProcesso,   setNumProcesso]   = useState("");
+  const [enderecamento, setEnderecamento] = useState("");
   const [parteAutora,   setParteAutora]   = useState("");
   const [parteRe,       setParteRe]       = useState("");
   const [descricao,     setDescricao]     = useState("");
@@ -176,7 +177,7 @@ REGRAS ABSOLUTAS — NUNCA VIOLE:
 4. Fonte padrão: Cambria 12pt. Recuo esquerdo 3cm, recuo direito 2cm, espaçamento simples, alinhamento justificado.
 5. Nunca invente fatos além do que foi informado.`;
 
-    const user = `Processo nº \${numProcesso || "não informado"}
+    const user = `\${enderecamento ? enderecamento + "\n\n" : ""}Processo nº \${numProcesso || "não informado"}
 Parte autora: \${parteAutora}
 Parte ré: \${parteRe}
 Tipo de peça: \${tipoPeca}
@@ -198,7 +199,12 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
+        headers:{
+            "Content-Type": "application/json",
+            "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY || "",
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-request-proxy": "true"
+          },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
@@ -239,7 +245,7 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
   function resetForm() {
     setEtapa("form"); setDescricao(""); setPecaGerada(""); setParecerIA("");
     setQualidade(null); setAlertaLider(false); setArquivos([]);
-    setNumProcesso(""); setParteAutora(""); setParteRe(""); setTipoPeca(""); setMateria("");
+    setNumProcesso(""); setEnderecamento(""); setParteAutora(""); setParteRe(""); setTipoPeca(""); setMateria("");
     setModoGuiado(false);
   }
 
@@ -391,6 +397,11 @@ Elabore a peça com cabeçalho, qualificação das partes, dos fatos, do direito
                   <label style={{ fontSize:11, color:"#666", letterSpacing:1, textTransform:"uppercase", display:"block", marginBottom:6 }}>Número do Processo</label>
                   <input value={numProcesso} onChange={e=>setNumProcesso(e.target.value)}
                     placeholder="0000000-00.0000.0.00.0000"
+                    style={{ width:"100%", padding:"10px 14px", border:"1.5px solid #ddd", borderRadius:8, fontSize:14, fontFamily:FONT_UI, boxSizing:"border-box", marginBottom:16 }}/>
+
+                  <label style={{ fontSize:11, color:"#666", letterSpacing:1, textTransform:"uppercase", display:"block", marginBottom:6 }}>Endereçamento</label>
+                  <input value={enderecamento} onChange={e=>setEnderecamento(e.target.value)}
+                    placeholder="Ex: MM. Juízo da 3ª Vara do Consumidor da Comarca de Manaus/AM"
                     style={{ width:"100%", padding:"10px 14px", border:"1.5px solid #ddd", borderRadius:8, fontSize:14, fontFamily:FONT_UI, boxSizing:"border-box", marginBottom:16 }}/>
 
                   {/* Partes */}
